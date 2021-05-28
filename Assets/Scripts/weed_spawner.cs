@@ -29,7 +29,7 @@ public class weed_spawner : MonoBehaviour
 
     void make_weed()
     {
-        var position = new Vector3(Random.Range(-square_len / 2, square_len / 2), 0, Random.Range(-square_len / 2, square_len / 2));
+        var position = new Vector3(Random.Range(-square_len / 2, square_len / 2), 0.5f, Random.Range(-square_len / 2, square_len / 2));
         var weed = Instantiate(myPrefab, position, Quaternion.identity);
         weed.transform.localScale = new Vector3(0.3f, 1, 0.3f);
     }

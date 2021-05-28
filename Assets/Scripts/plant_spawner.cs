@@ -27,8 +27,8 @@ public class plant_spawner : MonoBehaviour
     void make_plant()
     {
         int x = Random.Range(-square_len / 2, square_len / 2);
-        int y = Random.Range(-square_len / 2, square_len / 2);
-        var position = new Vector3(x, 0, y);
+        int z = Random.Range(-square_len / 2, square_len / 2);
+        var position = new Vector3(x, 0, z);
         var plant = Instantiate(myPrefab, position, Quaternion.identity);
     }
 }
