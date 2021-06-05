@@ -75,6 +75,8 @@ public class CarController : MonoBehaviour
     private float currentbreakForce;
     private bool isBreaking;
 
+    private int life = 5;
+
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
     [SerializeField] private float maxSteerAngle;
@@ -107,10 +109,12 @@ public class CarController : MonoBehaviour
 
     private void HandleMotor()
     {
-        frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
-        frontRightWheelCollider.motorTorque = verticalInput * motorForce;
-        currentbreakForce = isBreaking ? breakForce : 0f;
-        ApplyBreaking();
+        if (life>0) {
+            frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
+            frontRightWheelCollider.motorTorque = verticalInput * motorForce;
+            currentbreakForce = isBreaking ? breakForce : 0f;
+            ApplyBreaking();
+        }
     }
 
     private void ApplyBreaking()
@@ -147,6 +151,9 @@ public class CarController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.layer == 6) Destroy(other.gameObject);
+        if (other.gameObject.layer == 6) {
+            Destroy(other.gameObject);
+            Debug.Log("Remaining life points: "+(--life).ToString());
+        }
     }
 }
