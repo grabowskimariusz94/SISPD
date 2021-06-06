@@ -7,8 +7,8 @@ public class plant_spawner : MonoBehaviour
     // Start is called before the first frame update
     public GameObject myPrefab;
     //public int square_len = 100;
-    public static int field_x = 80;
-    public static int field_y = 190;
+    public static int field_x = 100;
+    public static int field_y = 150;
     public static int spacing_x = 4;
     public static int spacing_y = 2;
     //public int plant_num = 1000;
@@ -18,14 +18,9 @@ public class plant_spawner : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        /*for (int i = -rows/2; i<rows/2; i++) {
-            for (int j = -row_len/2; j<row_len/2; j++) {
-                make_plant(i*spacing_x, j*spacing_y);
-            }
-        }*/
         for (int i = -rows/2; i<rows/2; i++) {
-            for (int j = -row_len/2; j<row_len/2; j++) {
-                make_plant(i*spacing_x+j*j/150-5, j*spacing_y);
+            for (int j = -row_len/2+i; j<row_len/2-i; j++) {
+                make_plant(i*spacing_x+j*j/150, j*spacing_y);
             }
         }
     }

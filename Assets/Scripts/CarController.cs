@@ -75,7 +75,7 @@ public class CarController : MonoBehaviour
     private float currentbreakForce;
     private bool isBreaking;
 
-    private int life = 5;
+    private int life = 20;
 
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
