@@ -74,8 +74,8 @@ public class CarController : MonoBehaviour
     private float currentSteerAngle;
     private float currentbreakForce;
     private bool isBreaking;
-
-    private int life = 20;
+    private int timer;
+    private Collider targetedWeed;
 
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
@@ -90,13 +90,24 @@ public class CarController : MonoBehaviour
     [SerializeField] private Transform frontRightWheelTransform;
     [SerializeField] private Transform rearLeftWheelTransform;
     [SerializeField] private Transform rearRightWheelTransform;
+    [SerializeField] private int life = 20;
+    [SerializeField] private int destroyingTime = 100;
+    [SerializeField] private int removalProbability = 80; // %
 
+    void Start() {
+        timer = destroyingTime;
+    }
     private void FixedUpdate()
     {
         GetInput();
         HandleMotor();
         HandleSteering();
         //UpdateWheels();
+        if (timer<destroyingTime) {
+            timer++;
+            if (timer==destroyingTime) DestroyWeed();
+        }
+        //Debug.Log(timer.ToString());
     }
 
 
@@ -112,7 +123,7 @@ public class CarController : MonoBehaviour
         if (life>0) {
             frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
             frontRightWheelCollider.motorTorque = verticalInput * motorForce;
-            currentbreakForce = isBreaking ? breakForce : 0f;
+            currentbreakForce = (isBreaking || (timer<destroyingTime))? breakForce:0f;
             ApplyBreaking();
         }
     }
@@ -149,11 +160,15 @@ public class CarController : MonoBehaviour
         wheelTransform.position = pos;
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.layer == 6) {
-            Destroy(other.gameObject);
-            Debug.Log("Remaining life points: "+(--life).ToString());
+    private void OnTriggerEnter(Collider other) {
+        if (other.gameObject.layer==6 && UnityEngine.Random.Range(0, 100)<removalProbability && timer==destroyingTime) {
+            timer = 0;
+            targetedWeed = other;
         }
+    }
+
+    private void DestroyWeed() {
+        Destroy(targetedWeed.gameObject);
+        Debug.Log("Remaining life points: "+(--life).ToString());
     }
 }
