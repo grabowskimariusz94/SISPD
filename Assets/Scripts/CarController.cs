@@ -13,54 +13,97 @@ public class CarController : MonoBehaviour
     private float currentSteerAngle;
     private float currentbreakForce;
     private bool isBreaking;
+
     private int timer;
+      
     private Collider targetedWeed;
+
+    public float numberOfRays = 17;
+    public float angle = 180;
+    public float rayRange = 10;
+    public float avoidVelocity = 10.0f;
+
+    // This is our direction we're travelling in.
+    public Vector3 direction = Vector3.forward;
+    public float velocity = 5.0f;
+    public float velocityValue;
 
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
     [SerializeField] private float maxSteerAngle;
-
+    // 
     [SerializeField] private WheelCollider frontLeftWheelCollider;
     [SerializeField] private WheelCollider frontRightWheelCollider;
     [SerializeField] private WheelCollider rearLeftWheelCollider;
     [SerializeField] private WheelCollider rearRightWheelCollider;
-
+    //
     [SerializeField] private Transform frontLeftWheelTransform;
     [SerializeField] private Transform frontRightWheelTransform;
     [SerializeField] private Transform rearLeftWheelTransform;
     [SerializeField] private Transform rearRightWheelTransform;
+    // 
     [SerializeField] private int life = 20;
     [SerializeField] private int destroyingTime = 100;
-    [SerializeField] private int removalProbability = 80; //
+    [SerializeField] private int removalProbability = 80;
 
-    // This is our direction we're travelling in.
-    public Vector3 direction = new Vector3(0, 0, 1);
-    public float velocity = 50.0f;
-    public float velocityValue;
+   
 
     void Start() {
         timer = destroyingTime;
     }
+
+    void Update() {
+        HandleMotor();
+
+        var deltaPosition = velocityValue * direction;
+        for(int i = 0; i < numberOfRays; ++i) 
+        {
+            var rotation = this.transform.rotation;
+            var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up + new Vector3(0, 0.25f, 0));
+            var avoidDirection = rotation * rotationMod * direction;
+            var ray = new Ray(this.transform.position + new Vector3(0, 0.25f, 0), avoidDirection * rayRange);
+            RaycastHit hitInfo;
+
+            if (Physics.Raycast(ray, out hitInfo, rayRange))
+            {
+                Debug.Log("hitInfo: " + hitInfo.collider.gameObject.name);
+                if (hitInfo.collider.gameObject.name == "Rock")
+                {
+                    Debug.Log("Inside of");
+                    deltaPosition -= (1.0f / numberOfRays) * velocityValue * avoidDirection * 10.0f; // 10.0f - scale factor (selected individually)
+                }
+            }
+            else
+            {
+                deltaPosition += (1.0f / numberOfRays) * velocityValue * avoidDirection;
+
+            }
+        }
+
+        transform.Translate(deltaPosition * Time.deltaTime);
+    }
     private void FixedUpdate()
     {
         // GetInput();
-        HandleMotor();
+        // HandleMotor();
         // HandleSteering();
         //UpdateWheels();
-        transform.Translate(direction * velocityValue * Time.deltaTime);
-        if (timer<destroyingTime) {
+
+        if (timer < destroyingTime) {
             timer++;
-            if (timer==destroyingTime) DestroyWeed();
+            if (timer == destroyingTime) 
+            {
+                DestroyWeed();
+            }    
         }
-        //Debug.Log(timer.ToString());
     }
 
 
     private void GetInput()
     {
-        // horizontalInput = Input.GetAxis(HORIZONTAL);
-        // verticalInput = Input.GetAxis(VERTICAL);
-        // isBreaking = Input.GetKey(KeyCode.Space);
+        horizontalInput = Input.GetAxis(HORIZONTAL);
+        verticalInput = Input.GetAxis(VERTICAL);
+        isBreaking = Input.GetKey(KeyCode.Space);
     }
 
     private void HandleMotor()
@@ -68,7 +111,7 @@ public class CarController : MonoBehaviour
         if (life>0) {
             // frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
             // frontRightWheelCollider.motorTorque = verticalInput * motorForce;
-            // currentbreakForce = (isBreaking || (timer<destroyingTime))? breakForce:0f;
+            // currentbreakForce = (isBreaking || (timer < destroyingTime)) ?  breakForce : 0f;
             currentbreakForce = (timer < destroyingTime) ? 0.0f : velocity; // velocity
             ApplyBreaking();
         }
@@ -79,34 +122,46 @@ public class CarController : MonoBehaviour
         // Debug.Log("Prędkość: " + currentbreakForce);
         // Debug.Log("Timer: " + timer);
         velocityValue = currentbreakForce;
+
         // frontRightWheelCollider.brakeTorque = currentbreakForce;
         // frontLeftWheelCollider.brakeTorque = currentbreakForce;
         // rearLeftWheelCollider.brakeTorque = currentbreakForce;
         // rearRightWheelCollider.brakeTorque = currentbreakForce;
     }
 
+    private void OnDrawGizmos() 
+    {
+        for(int i = 0; i < numberOfRays; ++i) 
+        {
+            var rotation = this.transform.rotation;
+            var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up + new Vector3(0, 0.25f, 0));
+            var avoidDirection = rotation * rotationMod * direction;
+            Gizmos.DrawRay(this.transform.position + new Vector3(0, 0.25f, 0), avoidDirection * rayRange);
+        }
+    }
+
     private void HandleSteering()
     {
-        // currentSteerAngle = maxSteerAngle * horizontalInput;
-        // frontLeftWheelCollider.steerAngle = currentSteerAngle;
-        // frontRightWheelCollider.steerAngle = currentSteerAngle;
+        currentSteerAngle = maxSteerAngle * horizontalInput;
+        frontLeftWheelCollider.steerAngle = currentSteerAngle;
+        frontRightWheelCollider.steerAngle = currentSteerAngle;
     }
 
     private void UpdateWheels()
     {
-        // UpdateSingleWheel(frontLeftWheelCollider, frontLeftWheelTransform);
-        // UpdateSingleWheel(frontRightWheelCollider, frontRightWheelTransform);
-        // UpdateSingleWheel(rearRightWheelCollider, rearRightWheelTransform);
-        // UpdateSingleWheel(rearLeftWheelCollider, rearLeftWheelTransform);
+        UpdateSingleWheel(frontLeftWheelCollider, frontLeftWheelTransform);
+        UpdateSingleWheel(frontRightWheelCollider, frontRightWheelTransform);
+        UpdateSingleWheel(rearRightWheelCollider, rearRightWheelTransform);
+        UpdateSingleWheel(rearLeftWheelCollider, rearLeftWheelTransform);
     }
 
     private void UpdateSingleWheel(WheelCollider wheelCollider, Transform wheelTransform)
     {
-        // Vector3 pos;
-        // Quaternion rot;
-        // wheelCollider.GetWorldPose(out pos, out rot);
-        // wheelTransform.rotation = rot;
-        // wheelTransform.position = pos;
+        Vector3 pos;
+        Quaternion rot;
+        wheelCollider.GetWorldPose(out pos, out rot);
+        wheelTransform.rotation = rot;
+        wheelTransform.position = pos;
     }
 
     private void OnTriggerEnter(Collider other) {
@@ -116,9 +171,9 @@ public class CarController : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
-        // Debug.Log(collision.gameObject.name);
+        Debug.Log("Name: " + collision.gameObject.name);
         if (collision.gameObject.name == "FencePanel")
         {
             direction.z *= -1;
@@ -127,6 +182,6 @@ public class CarController : MonoBehaviour
 
     private void DestroyWeed() {
         Destroy(targetedWeed.gameObject);
-        Debug.Log("Remaining life points: "+(--life).ToString());
+        Debug.Log("Remaining life points: " + (--life).ToString());
     }
 }

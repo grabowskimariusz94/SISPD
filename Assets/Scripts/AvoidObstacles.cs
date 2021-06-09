@@ -7,7 +7,6 @@ public class AvoidObstacles : MonoBehaviour
     public float targetVelocity = 10.0f;
     public int numberOfRays = 17;
     public float angle = 90;
-
     public float rayRange = 2;
     // Start is called before the first frame update
     void Start()
@@ -28,13 +27,15 @@ public class AvoidObstacles : MonoBehaviour
             RaycastHit hitInfo;
             if (Physics.Raycast(ray, out hitInfo, rayRange))
             {
-                deltaPosition += (1.0f / numberOfRays) * targetVelocity * direction;
+                Debug.Log("hitInfo: " + hitInfo.collider);
+                deltaPosition -= (1.0f / numberOfRays) * targetVelocity * direction;
             }
             else
             {
-                deltaPosition -= (1.0f / numberOfRays) * targetVelocity * direction;
+                deltaPosition += (1.0f / numberOfRays) * targetVelocity * direction;
 
             }
+            
         }
         this.transform.position += deltaPosition * Time.deltaTime; 
     }
@@ -45,7 +46,7 @@ public class AvoidObstacles : MonoBehaviour
         {
             var rotation = this.transform.rotation;
             var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up);
-            var direction = rotation * rotationMod * Vector3.forward;
+            var direction = rotation * rotationMod * Vector3.forward * 3;
             Gizmos.DrawRay(this.transform.position, direction);
         }
     }
