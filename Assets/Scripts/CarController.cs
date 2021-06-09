@@ -31,17 +31,22 @@ public class CarController : MonoBehaviour
     [SerializeField] private Transform rearRightWheelTransform;
     [SerializeField] private int life = 20;
     [SerializeField] private int destroyingTime = 100;
-    [SerializeField] private int removalProbability = 80; // %
+    [SerializeField] private int removalProbability = 80; //
+
+    // This is our direction we're travelling in.
+    public Vector3 direction = new Vector3(0, 0, 1);
+    public float velocity = 10.0f;
 
     void Start() {
         timer = destroyingTime;
     }
     private void FixedUpdate()
     {
-        GetInput();
-        HandleMotor();
-        HandleSteering();
+        // GetInput();
+        // HandleMotor();
+        // HandleSteering();
         //UpdateWheels();
+        transform.Translate(direction * velocity * Time.deltaTime);
         if (timer<destroyingTime) {
             timer++;
             if (timer==destroyingTime) DestroyWeed();
@@ -104,6 +109,15 @@ public class CarController : MonoBehaviour
             timer = 0;
             targetedWeed = other;
         }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        Debug.Log(collision.gameObject.name);
+        if (collision.gameObject.name == "FencePanel")
+        {
+            direction.z *= -1;
+        }      
     }
 
     private void DestroyWeed() {
