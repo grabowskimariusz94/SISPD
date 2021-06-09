@@ -28,15 +28,15 @@ public class AvoidObstacles : MonoBehaviour
             RaycastHit hitInfo;
             if (Physics.Raycast(ray, out hitInfo, rayRange))
             {
-                deltaPosition -= (1.0f / numberOfRays) * targetVelocity * direction;
+                deltaPosition += (1.0f / numberOfRays) * targetVelocity * direction;
             }
             else
             {
-                deltaPosition += (1.0f / numberOfRays) * targetVelocity * direction;
+                deltaPosition -= (1.0f / numberOfRays) * targetVelocity * direction;
+
             }
         }
-
-        this.transform.position += deltaPosition * Time.deltaTime;
+        this.transform.position += deltaPosition * Time.deltaTime; 
     }
 
     void OnDrawGizmos() 
