@@ -30,6 +30,6 @@ public class RockSpawner : MonoBehaviour
     {
         var position = new Vector3(Random.Range(-squareLen / 2, squareLen / 2), 0.0f, Random.Range(-squareLen / 2, squareLen / 2));
         var weed = Instantiate(myPrefab, position, Quaternion.identity);
-        weed.transform.localScale = new Vector3(0.3f, 1.0f, 0.3f);
+        weed.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
     }
 }

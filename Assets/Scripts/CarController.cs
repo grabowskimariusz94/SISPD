@@ -1,4 +1,6 @@
 using System;
+using System.Text.RegularExpressions;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -28,6 +30,10 @@ public class CarController : MonoBehaviour
     public float velocity = 5.0f;
     public float velocityValue;
 
+    public Regex rgx = new Regex(@"^rock.*$", RegexOptions.IgnoreCase);
+
+    public int removalCounter = 0;
+
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
     [SerializeField] private float maxSteerAngle;
@@ -45,32 +51,36 @@ public class CarController : MonoBehaviour
     [SerializeField] private int life = 20;
     [SerializeField] private int destroyingTime = 100;
     [SerializeField] private int removalProbability = 80;
+    
 
    
 
-    void Start() {
+    void Start() 
+    {
         timer = destroyingTime;
     }
 
-    void Update() {
+    void Update()
+    {
         HandleMotor();
 
         var deltaPosition = velocityValue * direction;
         for(int i = 0; i < numberOfRays; ++i) 
         {
             var rotation = this.transform.rotation;
-            var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up + new Vector3(0, 0.25f, 0));
+            var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up + new Vector3(0, 0.125f, 0));
             var avoidDirection = rotation * rotationMod * direction;
-            var ray = new Ray(this.transform.position + new Vector3(0, 0.25f, 0), avoidDirection * rayRange);
+            var ray = new Ray(this.transform.position + new Vector3(0, 0.125f, 0), avoidDirection * rayRange);
             RaycastHit hitInfo;
 
             if (Physics.Raycast(ray, out hitInfo, rayRange))
             {
                 Debug.Log("hitInfo: " + hitInfo.collider.gameObject.name);
-                if (hitInfo.collider.gameObject.name == "Rock")
+                // Debug.Log("hitInfo: " + rgx.IsMatch(hitInfo.collider.gameObject.name));
+                if (rgx.IsMatch(hitInfo.collider.gameObject.name))
                 {
                     Debug.Log("Inside of");
-                    deltaPosition -= (1.0f / numberOfRays) * velocityValue * avoidDirection * 10.0f; // 10.0f - scale factor (selected individually)
+                    deltaPosition -= (1.0f / numberOfRays) * velocityValue * avoidDirection * avoidVelocity; // avoidVelocity 10.0f - scale factor (selected individually)
                 }
             }
             else
@@ -84,10 +94,10 @@ public class CarController : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        // GetInput();
+        GetInput();
         // HandleMotor();
         // HandleSteering();
-        //UpdateWheels();
+        // UpdateWheels();
 
         if (timer < destroyingTime) {
             timer++;
@@ -109,24 +119,33 @@ public class CarController : MonoBehaviour
     private void HandleMotor()
     {
         if (life>0) {
-            // frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
-            // frontRightWheelCollider.motorTorque = verticalInput * motorForce;
-            // currentbreakForce = (isBreaking || (timer < destroyingTime)) ?  breakForce : 0f;
-            currentbreakForce = (timer < destroyingTime) ? 0.0f : velocity; // velocity
-            ApplyBreaking();
+            if (horizontalInput != 0 || verticalInput != 0 || isBreaking)
+            {
+                frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
+                frontRightWheelCollider.motorTorque = verticalInput * motorForce;
+                currentbreakForce = isBreaking || (timer < destroyingTime) ?  breakForce : 0f;
+                ApplyBreakingManually();
+            }
+            else
+            {
+                currentbreakForce = (timer < destroyingTime) ? 0.0f : velocity; // velocity
+                ApplyBreaking();
+            }
+            
         }
     }
 
     private void ApplyBreaking()
     {
-        // Debug.Log("Prędkość: " + currentbreakForce);
-        // Debug.Log("Timer: " + timer);
         velocityValue = currentbreakForce;
+    }
 
-        // frontRightWheelCollider.brakeTorque = currentbreakForce;
-        // frontLeftWheelCollider.brakeTorque = currentbreakForce;
-        // rearLeftWheelCollider.brakeTorque = currentbreakForce;
-        // rearRightWheelCollider.brakeTorque = currentbreakForce;
+    private void ApplyBreakingManually()
+    {
+        frontRightWheelCollider.brakeTorque = currentbreakForce;
+        frontLeftWheelCollider.brakeTorque = currentbreakForce;
+        rearLeftWheelCollider.brakeTorque = currentbreakForce;
+        rearRightWheelCollider.brakeTorque = currentbreakForce;
     }
 
     private void OnDrawGizmos() 
@@ -134,9 +153,9 @@ public class CarController : MonoBehaviour
         for(int i = 0; i < numberOfRays; ++i) 
         {
             var rotation = this.transform.rotation;
-            var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up + new Vector3(0, 0.25f, 0));
+            var rotationMod = Quaternion.AngleAxis((i / ((float)numberOfRays - 1)) * angle * 2 - angle, this.transform.up + new Vector3(0, 0.125f, 0));
             var avoidDirection = rotation * rotationMod * direction;
-            Gizmos.DrawRay(this.transform.position + new Vector3(0, 0.25f, 0), avoidDirection * rayRange);
+            Gizmos.DrawRay(this.transform.position + new Vector3(0, 0.125f, 0), avoidDirection * rayRange);
         }
     }
 
@@ -164,7 +183,8 @@ public class CarController : MonoBehaviour
         wheelTransform.position = pos;
     }
 
-    private void OnTriggerEnter(Collider other) {
+    private void OnTriggerEnter(Collider other) 
+    {
         if (other.gameObject.layer == 6 && UnityEngine.Random.Range(0, 100) < removalProbability && timer == destroyingTime) {
             timer = 0;
             targetedWeed = other;
@@ -180,8 +200,20 @@ public class CarController : MonoBehaviour
         }      
     }
 
-    private void DestroyWeed() {
+    private void DestroyWeed() 
+    {
         Destroy(targetedWeed.gameObject);
         Debug.Log("Remaining life points: " + (--life).ToString());
+        removalCounter += 1;
+        Debug.Log("Write to file...");
+        WriteString("Destroyed weeds: " + removalCounter);
+}
+
+    private void WriteString(string str)
+    {
+        //Write some text to the test.txt file
+        StreamWriter writer = new StreamWriter("Assets/log.txt", true);
+        writer.WriteLine(str);
+        writer.Close();
     }
 }
