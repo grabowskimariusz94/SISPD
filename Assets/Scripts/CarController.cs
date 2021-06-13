@@ -9,7 +9,6 @@ public class CarController : MonoBehaviour
 {
     private const string HORIZONTAL = "Horizontal";
     private const string VERTICAL = "Vertical";
-
     private float horizontalInput;
     private float verticalInput;
     private float currentSteerAngle;
@@ -20,50 +19,60 @@ public class CarController : MonoBehaviour
     
     private Collider targetedWeed;
 
-    public float numberOfRays = 17;
-    public float angle = 180;
-    public float rayRange = 10;
-    public float avoidVelocity = 10.0f;
-
-    // This is our direction we're travelling in.
-    public Vector3 direction = Vector3.forward;
+    public Vector3 direction = Vector3.forward;  // This is our direction we're travelling in.
     public float velocity = 5.0f;
-    public float velocityValue;
+    public float avoidVelocity = 10.0f;
+    private float velocityValue;
 
-    public Regex rgx = new Regex(@"^rock.*$", RegexOptions.IgnoreCase);
+    private Regex rgxRock = new Regex(@"^rock.*$", RegexOptions.IgnoreCase);
+    private Regex rgxWeed = new Regex(@"^weed.*$", RegexOptions.IgnoreCase);
 
-    public int removalCounter = 0;
+    private int removalCounter = 0;
+    private int detectedCounter = 0;
+
+    private int startLife;
+
+    private string logPath = "Assets/log";
+    private string batteryPath = "Assets/battery";
+
+    [SerializeField] private int id = 1;
+    [SerializeField] private int life = 20;
 
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
     [SerializeField] private float maxSteerAngle;
-    // 
     [SerializeField] private WheelCollider frontLeftWheelCollider;
     [SerializeField] private WheelCollider frontRightWheelCollider;
     [SerializeField] private WheelCollider rearLeftWheelCollider;
     [SerializeField] private WheelCollider rearRightWheelCollider;
-    //
     [SerializeField] private Transform frontLeftWheelTransform;
     [SerializeField] private Transform frontRightWheelTransform;
     [SerializeField] private Transform rearLeftWheelTransform;
     [SerializeField] private Transform rearRightWheelTransform;
-    // 
-    [SerializeField] private int life = 20;
+
+    [SerializeField] private float numberOfRays = 17; // n + 1
+    [SerializeField] private float rayRange = 10;
+    [SerializeField] private float angle = 180;
+   
     [SerializeField] private int destroyingTime = 100;
+
     [SerializeField] private int removalProbability = 80;
-    [SerializeField] private int id = 1;
-    public DateTime timestart = DateTime.Now;
+
+    private float lastInterval;
 
     void Start() 
     {
+        // Init
         timer = destroyingTime;
-        File.WriteAllText(@"Assets/log"+id+".txt", "Time    Romove weed     Life\n");
+        lastInterval = Time.realtimeSinceStartup;
+        startLife = life;
+
+        File.WriteAllText(logPath + id + ".txt", "Time                            Romoved weeds    Battery    Encountered weeds\n");
+        File.WriteAllText(batteryPath + id + ".txt", "Time    Battery\n");
     }
 
     void Update()
     {
-        HandleMotor();
-
         var deltaPosition = velocityValue * direction;
         for(int i = 0; i < numberOfRays; ++i) 
         {
@@ -75,11 +84,10 @@ public class CarController : MonoBehaviour
 
             if (Physics.Raycast(ray, out hitInfo, rayRange))
             {
-                Debug.Log("hitInfo: " + hitInfo.collider.gameObject.name);
-                // Debug.Log("hitInfo: " + rgx.IsMatch(hitInfo.collider.gameObject.name));
-                if (rgx.IsMatch(hitInfo.collider.gameObject.name))
+                // Debug.Log("hitInfo: " + hitInfo.collider.gameObject.name);
+                if (rgxRock.IsMatch(hitInfo.collider.gameObject.name))
                 {
-                    Debug.Log("Inside of");
+                    // Debug.Log("Inside of");
                     deltaPosition -= (1.0f / numberOfRays) * velocityValue * avoidDirection * avoidVelocity; // avoidVelocity 10.0f - scale factor (selected individually)
                 }
             }
@@ -91,16 +99,22 @@ public class CarController : MonoBehaviour
         }
 
         transform.Translate(deltaPosition * Time.deltaTime);
+
+        float timeNow = Time.realtimeSinceStartup;
+        // Debug.Log("Simulation: " + (timeNow - lastInterval));
+        if ((timeNow - lastInterval) > 15)
+        {
+            ChargeBattery();
+            lastInterval = timeNow;
+        }
     }
     private void FixedUpdate()
     {
-        GetInput();
-        // HandleMotor();
-        // HandleSteering();
-        // UpdateWheels();
+        GetInput();   
+        HandleMotor();
 
         if (timer < destroyingTime) {
-            timer++;
+            ++timer;
             if (timer == destroyingTime) 
             {
                 DestroyWeed();
@@ -118,7 +132,7 @@ public class CarController : MonoBehaviour
 
     private void HandleMotor()
     {
-        if (life>0) {
+        if (life > 0) {
             if (horizontalInput != 0 || verticalInput != 0 || isBreaking)
             {
                 frontLeftWheelCollider.motorTorque = verticalInput * motorForce;
@@ -185,15 +199,23 @@ public class CarController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other) 
     {
-        if (other.gameObject.layer == 6 && UnityEngine.Random.Range(0, 100) < removalProbability && timer == destroyingTime) {
-            timer = 0;
-            targetedWeed = other;
+        bool isSure = UnityEngine.Random.Range(0, 100) < removalProbability;
+        bool isEncountered = rgxWeed.IsMatch(other.gameObject.name);
+        
+        if (isEncountered) {
+            IncreaseEncounteredWeeds();
+            if (isSure && timer == destroyingTime) 
+            {
+                targetedWeed = other;
+
+                timer = 0;
+            }
         }
     }
 
     private void OnCollisionEnter(Collision collision)
     {
-        Debug.Log("Name: " + collision.gameObject.name);
+        // Debug.Log("Name: " + collision.gameObject.name);
         if (collision.gameObject.name == "FencePanel")
         {
             direction.z *= -1;
@@ -203,19 +225,53 @@ public class CarController : MonoBehaviour
     private void DestroyWeed() 
     {
         Destroy(targetedWeed.gameObject);
-        Debug.Log("Remaining life points: " + (--life).ToString());
-        removalCounter += 1;
-        Debug.Log("Write to file...");
-        WriteString((DateTime.Now - timestart).TotalSeconds + "     "+ removalCounter + "       " + life);
-        
-   
-}
+        IncreaseRemovedWeeds();
+        DischargeBattery();
+        WriteString(logPath, DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "                            " + removalCounter + "    " + GetBatteryStatus() + "%" + "    " + detectedCounter);
+    }
 
-    private void WriteString(string str)
+    private void WriteString(string path, string str)
     {
-        //Write some text to the test.txt file
-        StreamWriter writer = new StreamWriter("Assets/log"+id+".txt", true);
+        Debug.Log("Write to file...");
+        StreamWriter writer = new StreamWriter(path + id + ".txt", true);
         writer.WriteLine(str);
         writer.Close();
+    }
+
+    private string GetLifeInfo(string info)
+    {
+        string message = (GetBatteryStatus()).ToString() + "%";
+        Debug.Log(info + message);
+        return message;
+    }
+
+    private void ChargeBattery()
+    {
+        if (life < startLife)
+        {
+            ++life;
+        }
+        WriteString(batteryPath, DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "     " + GetLifeInfo("Remaining battery +: "));
+    }
+
+    private void DischargeBattery()
+    {
+        --life;
+        WriteString(batteryPath, DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "     " + GetLifeInfo("Remaining battery -: "));
+    }
+
+    private void IncreaseEncounteredWeeds()
+    {
+        ++detectedCounter;
+    }
+
+    private void IncreaseRemovedWeeds()
+    {
+        ++removalCounter;
+    }
+
+    private float GetBatteryStatus()
+    {
+        return (float)life / (float)startLife * 100;
     }
 }

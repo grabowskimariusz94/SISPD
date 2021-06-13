@@ -5,20 +5,19 @@ using UnityEngine;
 
 public class WeedSpawner : MonoBehaviour
 {
-    // Start is called before the first frame update
     public GameObject myPrefab;
     public int squareLen = 100;
     public int weedNum = 100;
     public float weedRespawnTime = 5;
 
-    // This script will simply instantiate the Prefab when the game starts.
+    // Start is called before the first frame update
     void Start()
     {
         for(int i =0; i<weedNum; i++) {
             makeWeed();
         }
 
-        InvokeRepeating("makeWeed", 2.0f, weedRespawnTime);
+        // InvokeRepeating("makeWeed", 2.0f, weedRespawnTime);
 
     }
     // Update is called once per frame

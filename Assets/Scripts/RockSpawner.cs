@@ -17,7 +17,7 @@ public class RockSpawner : MonoBehaviour
             MakeRock();
         }
 
-        InvokeRepeating("MakeRock", 2.0f, rockRespawnTime);
+        // InvokeRepeating("MakeRock", 2.0f, rockRespawnTime);
     }
 
     // Update is called once per frame
