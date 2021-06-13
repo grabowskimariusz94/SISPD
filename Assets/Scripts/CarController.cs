@@ -17,7 +17,7 @@ public class CarController : MonoBehaviour
     private bool isBreaking;
 
     private int timer;
-      
+    
     private Collider targetedWeed;
 
     public float numberOfRays = 17;
@@ -51,13 +51,13 @@ public class CarController : MonoBehaviour
     [SerializeField] private int life = 20;
     [SerializeField] private int destroyingTime = 100;
     [SerializeField] private int removalProbability = 80;
-    
-
-   
+    [SerializeField] private int id = 1;
+    public DateTime timestart = DateTime.Now;
 
     void Start() 
     {
         timer = destroyingTime;
+        File.WriteAllText(@"Assets/log"+id+".txt", "Time    Romove weed     Life\n");
     }
 
     void Update()
@@ -206,13 +206,15 @@ public class CarController : MonoBehaviour
         Debug.Log("Remaining life points: " + (--life).ToString());
         removalCounter += 1;
         Debug.Log("Write to file...");
-        WriteString("Destroyed weeds: " + removalCounter);
+        WriteString((DateTime.Now - timestart).TotalSeconds + "     "+ removalCounter + "       " + life);
+        
+   
 }
 
     private void WriteString(string str)
     {
         //Write some text to the test.txt file
-        StreamWriter writer = new StreamWriter("Assets/log.txt", true);
+        StreamWriter writer = new StreamWriter("Assets/log"+id+".txt", true);
         writer.WriteLine(str);
         writer.Close();
     }
