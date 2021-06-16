@@ -26,6 +26,7 @@ public class CarController : MonoBehaviour
 
     private Regex rgxRock = new Regex(@"^rock.*$", RegexOptions.IgnoreCase);
     private Regex rgxWeed = new Regex(@"^weed.*$", RegexOptions.IgnoreCase);
+    private Regex rgxWeedRobot = new Regex(@"^weedrobot.*$", RegexOptions.IgnoreCase);
 
     private int removalCounter = 0;
     private int detectedCounter = 0;
@@ -85,9 +86,9 @@ public class CarController : MonoBehaviour
             if (Physics.Raycast(ray, out hitInfo, rayRange))
             {
                 // Debug.Log("hitInfo: " + hitInfo.collider.gameObject.name);
-                if (rgxRock.IsMatch(hitInfo.collider.gameObject.name))
+                if (rgxRock.IsMatch(hitInfo.collider.gameObject.name) || rgxWeedRobot.IsMatch(hitInfo.collider.gameObject.name))
                 {
-                    // Debug.Log("Inside of");
+                    Debug.Log("Inside of");
                     deltaPosition -= (1.0f / numberOfRays) * velocityValue * avoidDirection * avoidVelocity; // avoidVelocity 10.0f - scale factor (selected individually)
                 }
             }
